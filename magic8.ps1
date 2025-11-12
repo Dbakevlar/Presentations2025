@@ -44,7 +44,7 @@ function Get-OllamaModels {
 function Ensure-Model([string]$model, [string]$fallback) {
   $have = Get-OllamaModels
   if ($have -contains $model) {
-    Write-Host "Model '$model' found locally. Staying offline." -ForegroundColor DarkGreen
+#    Write-Host "Model '$model' found locally. Staying offline." -ForegroundColor DarkGreen
     return $model
   }
 
@@ -78,7 +78,7 @@ function Ensure-Model([string]$model, [string]$fallback) {
   # If still missing, try local fallback (no pulling)
   $have = Get-OllamaModels
   if ($have -contains $fallback) {
-    Write-Host "Using local fallback model '$fallback' (offline)." -ForegroundColor Yellow
+#    Write-Host "Using local fallback model '$fallback' (offline)." -ForegroundColor Yellow
     return $fallback
   }
 
@@ -108,59 +108,62 @@ if (-not (Test-OllamaUp)) {
 # Ensure Qwen 2.5 is present locally (pull once if needed), then run offline
 $modelToUse = Ensure-Model -model $PreferredModel -fallback $FallbackModel
 
-# --- Prompt the user ---------------------------------------------------------
-Write-Host ""
-Write-Host " Ask the Magic 8-Ball your question:" -ForegroundColor Cyan
-$question = Read-Host ">"
+# --- Q&A Loop ---------------------------------------------------------------
+while ($true) {
+  # --- Prompt the user -------------------------------------------------------
+  Write-Host ""
+  Write-Host " Ask the Magic AI-Ball your question:" -ForegroundColor Cyan
+  $question = Read-Host ">"
 
-if ([string]::IsNullOrWhiteSpace($question)) {
-  Write-Host "No question, no prophecy. Try again." -ForegroundColor DarkYellow
-  exit 0
-}
+  if ([string]::IsNullOrWhiteSpace($question)) {
+    Write-Host "No question, no prophecy. Try again." -ForegroundColor DarkYellow
+    continue
+  }
 
-# --- Build the instruction ---------------------------------------------------
-$styleBlock = @"
+  # --- Build the instruction -------------------------------------------------
+  $styleBlock = @"
 You are a cheeky, sassy Magic 8-Ball. Answer in ONE short line, no preamble.
-Channel the spirit of classic 8-Ball replies with playful sarcasm, e.g.:
-- "As I see it, yes." with a wink
-- "Outlook not so good." but snappier
-- "Reply hazy, try again." but spicy
-- "Don't count on it." with comedic flair
+Channel the spirit of classic 8-Ball replies with playful sarcasm, but you're someone's boss e.g.:
+- "As I see it, AI will fix it." with a wink
+- "Outlook in the cloud not so good." but snappier
+- "Reply hazy, No HA." but spicy
+- "Don't count on a good backup." with comedic flair
 
 Rules:
 - Be witty, a touch snarky, but not mean.
-- Keep it to one sentence.
 - No extra formatting, no quotes.
 - Don’t repeat the question.
-- Vary your phrasing; don’t just reuse stock lines.
+- Vary your phrasing; throw in tech terms.
+- Keep it to one sentence.
 Now respond to the user’s question.
 "@
 
-$fullPrompt = @"
+  $fullPrompt = @"
 $styleBlock
 
 Question: $question
 "@
 
-$options = @{
-  temperature = 0.9
-  top_p       = 0.9
-  # presence_penalty = 0.5
-  # frequency_penalty = 0.2
-}
-
-# --- Ask the model -----------------------------------------------------------
-try {
-  $answer = Invoke-OllamaGenerate -model $modelToUse -prompt $fullPrompt -options $options
-  $line = ($answer -split "`r?`n")[0].Trim().Trim('"').Trim("'")
-  if ([string]::IsNullOrWhiteSpace($line)) {
-    $line = "Signs point to… my coffee machine is offline. Try again."
+  $options = @{
+    temperature = 0.9
+    top_p       = 0.9
+    # presence_penalty = 0.5
+    # frequency_penalty = 0.2
   }
-  Write-Host ""
-  Write-Host ("{0}" -f $line) -ForegroundColor Green
-  Write-Host ""
-} catch {
-  Write-Host "The fates are busy: $($_.Exception.Message)" -ForegroundColor Red
-  Write-Host "Tip: ensure the Qwen model is available locally (e.g., run once with internet: 'ollama pull $PreferredModel')." -ForegroundColor DarkYellow
-  exit 1
+
+  # --- Ask the model ---------------------------------------------------------
+  try {
+    $answer = Invoke-OllamaGenerate -model $modelToUse -prompt $fullPrompt -options $options
+    $line = ($answer -split "`r?`n")[0].Trim().Trim('"').Trim("'")
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      $line = "Signs point to… my coffee machine is offline. Try again."
+    }
+    Write-Host ""
+    Write-Host ("{0}" -f $line) -ForegroundColor Green
+    Write-Host ""
+  } catch {
+    Write-Host "The fates are busy: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Tip: ensure the Qwen model is available locally (e.g., run once with internet: 'ollama pull $PreferredModel')." -ForegroundColor DarkYellow
+    continue
+  }
 }
