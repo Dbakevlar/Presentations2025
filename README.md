@@ -2,7 +2,7 @@
 Welcome to the official repository for technical PowerPoint presentations authored by Kellyn Gorman. These decks are shared to support technical sessions, community education, and professional development in the fields of Multiplatform Database, DevOps, AI, cloud, and platform engineering.
 
 📂 Repository Contents
-This repository contains PowerPoint .pptx files for:
+This repository contains presentation slides and code, including PowerPoint .pptx and .ps1 files for:
 
 Conference and keynote presentations
 
